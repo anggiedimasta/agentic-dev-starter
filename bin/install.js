@@ -347,12 +347,18 @@ async function installProvider(providerId) {
 
   log.section(`📦 Installing ${config.name}...`);
 
-  const srcDir = path.join(TEMPLATE_DIR, config.dir);
+  // Providers that need generation (have multiple directories or special handling)
+  const generateOnly = ['cursor', 'opencode', 'cline', 'claude', 'copilot', 'windsurf', 'trae', 'kiro', 'droid', 'antigravity'];
 
-  if (fs.existsSync(srcDir)) {
-    await copyDir(srcDir, path.join(TARGET_DIR, config.dir));
-  } else {
+  if (generateOnly.includes(providerId)) {
     await generateProviderConfig(providerId);
+  } else {
+    const srcDir = path.join(TEMPLATE_DIR, config.dir);
+    if (fs.existsSync(srcDir)) {
+      await copyDir(srcDir, path.join(TARGET_DIR, config.dir));
+    } else {
+      await generateProviderConfig(providerId);
+    }
   }
 }
 
