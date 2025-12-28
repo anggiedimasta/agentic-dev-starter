@@ -1,0 +1,42 @@
+{
+  "name": "agentic-dev-starter",
+  "version": "1.0.0",
+  "description": "Universal agentic development configuration for AI coding assistants",
+  "bin": {
+    "agentic-dev-starter": "./bin/install.js"
+  },
+  "files": [
+    "bin/",
+    ".agent/",
+    "AGENTS.md",
+    ".cursor/",
+    ".claude/",
+    ".github/",
+    ".clinerules/",
+    ".windsurf/",
+    ".trae/",
+    ".kiro/",
+    ".factory/",
+    ".gemini/",
+    ".opencode/"
+  ],
+  "keywords": [
+    "ai",
+    "coding",
+    "assistant",
+    "cursor",
+    "claude",
+    "copilot",
+    "cline",
+    "windsurf",
+    "kiro",
+    "agents",
+    "agentic"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  }
+}
