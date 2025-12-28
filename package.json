@@ -1,6 +1,6 @@
 {
   "name": "agentic-dev-starter",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Universal agentic development configuration for AI coding assistants",
   "bin": {
     "agentic-dev-starter": "bin/install.js"

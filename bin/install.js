@@ -235,11 +235,14 @@ async function generateProviderConfig(providerId) {
       fs.writeFileSync(path.join(destDir, 'agents.mdc'), cursorContent);
       log.success(`Created: ${config.dir}/agents.mdc`);
 
+      // Commands go to .cursor/commands/ as .md files
+      const cursorCmdDir = path.join(TARGET_DIR, '.cursor', 'commands');
+      ensureDir(cursorCmdDir);
       commandFiles.forEach(f => {
         const src = path.join(commandSrcDir, f);
-        const dest = path.join(destDir, f.replace('.md', '.mdc'));
+        const dest = path.join(cursorCmdDir, f); // Keep as .md
         fs.copyFileSync(src, dest);
-        log.success(`Created: ${config.dir}/${path.basename(dest)}`);
+        log.success(`Created: .cursor/commands/${path.basename(dest)}`);
       });
       break;
 
