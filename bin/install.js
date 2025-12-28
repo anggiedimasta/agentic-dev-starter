@@ -12,7 +12,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { checkbox, confirm } = require('@inquirer/prompts');
+const inquirer = require('inquirer');
 
 // Colors for terminal output
 const colors = {
@@ -86,22 +86,24 @@ async function selectProviders() {
     checked: p.id === 'cursor' // Only Cursor pre-selected
   }));
 
-  const selected = await checkbox({
+  const { providers } = await inquirer.prompt([{
+    type: 'checkbox',
+    name: 'providers',
     message: 'Select AI coding tools (space to toggle, enter to confirm)',
     choices,
     pageSize: 12
-  });
+  }]);
 
-  return selected;
+  return providers;
 }
 
 // Handle file conflict
 async function handleConflict(filePath) {
   const relativePath = path.relative(TARGET_DIR, filePath);
 
-  const { select } = require('@inquirer/prompts');
-
-  const choice = await select({
+  const { choice } = await inquirer.prompt([{
+    type: 'list',
+    name: 'choice',
     message: `File exists: ${relativePath}. What to do?`,
     choices: [
       { name: 'Skip (keep existing)', value: CONFLICT_OPTIONS.SKIP },
@@ -109,7 +111,7 @@ async function handleConflict(filePath) {
       { name: 'Overwrite', value: CONFLICT_OPTIONS.OVERWRITE },
       { name: 'Backup (rename to .backup)', value: CONFLICT_OPTIONS.BACKUP }
     ]
-  });
+  }]);
 
   return choice;
 }
