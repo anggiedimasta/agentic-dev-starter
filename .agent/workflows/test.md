@@ -1,3 +1,7 @@
+---
+description: Write tests for code coverage and edge cases
+---
+
 Test $ARGUMENTS
 
 Help me write comprehensive tests for my code.

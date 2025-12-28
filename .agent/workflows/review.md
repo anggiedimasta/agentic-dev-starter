@@ -1,3 +1,7 @@
+---
+description: Code review for correctness and best practices
+---
+
 Review $ARGUMENTS
 
 Help me review code changes for quality, correctness, and best practices.

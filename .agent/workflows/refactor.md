@@ -1,3 +1,7 @@
+---
+description: Safe code refactoring with pattern preservation
+---
+
 Refactor $ARGUMENTS
 
 Help me refactor code systematically with minimal risk.

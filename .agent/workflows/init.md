@@ -1,3 +1,7 @@
+---
+description: Initialize AGENTS.md with project-specific guidance
+---
+
 # Initialize AGENTS.md
 
 Analyze the codebase and create an AGENTS.md file with project-specific guidance for AI coding agents.

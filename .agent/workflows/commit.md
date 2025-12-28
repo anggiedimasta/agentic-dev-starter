@@ -1,3 +1,7 @@
+---
+description: Create atomic git commits with conventional messages
+---
+
 Commit $ARGUMENTS
 
 Create git commits for my changes.

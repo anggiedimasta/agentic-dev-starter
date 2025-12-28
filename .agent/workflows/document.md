@@ -1,3 +1,7 @@
+---
+description: Generate documentation for code and APIs
+---
+
 Document $ARGUMENTS
 
 Help me create or update documentation systematically.

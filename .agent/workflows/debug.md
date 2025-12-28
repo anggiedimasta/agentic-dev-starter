@@ -1,3 +1,7 @@
+---
+description: Systematic debugging and root cause analysis
+---
+
 Debug $ARGUMENTS
 
 Help me diagnose and fix a bug systematically.

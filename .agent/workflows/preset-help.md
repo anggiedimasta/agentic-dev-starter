@@ -1,3 +1,7 @@
+---
+description: Get help with project presets and configurations
+---
+
 Explain this agentic development preset to me.
 
 ## What to Cover

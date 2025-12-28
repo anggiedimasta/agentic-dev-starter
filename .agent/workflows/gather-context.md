@@ -1,3 +1,7 @@
+---
+description: Gather project context and codebase overview
+---
+
 Gather Context $ARGUMENTS
 
 Understand the current state of the repository and recent changes.

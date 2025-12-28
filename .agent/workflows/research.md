@@ -1,3 +1,7 @@
+---
+description: Research external documentation and APIs
+---
+
 Research $ARGUMENTS
 
 Help me research a topic using codebase analysis and external docs.
