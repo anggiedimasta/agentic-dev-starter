@@ -98,10 +98,9 @@ const CONFLICT_OPTIONS = {
   BACKUP: 'backup'
 };
 
-// Get template directory (where this package is installed)
+// Get template directory (package root, one level up from bin/)
 function getTemplateDir() {
-  // When running via npx, __dirname is the package location
-  return path.join(__dirname);
+  return path.join(__dirname, '..');
 }
 
 // Target directory (user's project)
@@ -472,7 +471,7 @@ ${Object.entries(PROVIDERS).map(([id, p]) => `  - ${p.name.padEnd(15)} (${id})`)
 }
 
 if (args.includes('--version') || args.includes('-v')) {
-  const pkg = require('./package.json');
+  const pkg = require('../package.json');
   console.log(pkg.version);
   process.exit(0);
 }
