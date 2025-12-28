@@ -1,6 +1,6 @@
 {
   "name": "agentic-dev-starter",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "Universal agentic development configuration for AI coding assistants",
   "bin": {
     "agentic-dev-starter": "bin/install.js"
@@ -38,5 +38,8 @@
   "repository": {
     "type": "git",
     "url": ""
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^8.1.0"
   }
 }

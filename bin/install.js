@@ -12,7 +12,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const readline = require('readline');
+const { checkbox, confirm } = require('@inquirer/prompts');
 
 // Colors for terminal output
 const colors = {
@@ -36,59 +36,19 @@ const log = {
   dim: (msg) => console.log(`${colors.gray}   ${msg}${colors.reset}`)
 };
 
-// Provider configurations
-const PROVIDERS = {
-  cursor: {
-    name: 'Cursor',
-    dir: '.cursor/rules',
-    description: 'AI-powered IDE with rules system'
-  },
-  claude: {
-    name: 'Claude Code',
-    dir: '.claude',
-    description: 'Anthropic Claude CLI agent'
-  },
-  copilot: {
-    name: 'GitHub Copilot',
-    dir: '.github',
-    description: 'GitHub Copilot Chat instructions'
-  },
-  cline: {
-    name: 'Cline',
-    dir: '.clinerules',
-    description: 'VS Code extension with rules'
-  },
-  windsurf: {
-    name: 'Windsurf',
-    dir: '.windsurf/rules',
-    description: 'Codeium Cascade agent'
-  },
-  trae: {
-    name: 'Trae',
-    dir: '.trae',
-    description: 'ByteDance AI coding assistant'
-  },
-  kiro: {
-    name: 'Kiro',
-    dir: '.kiro/agents',
-    description: 'AWS AI coding IDE'
-  },
-  droid: {
-    name: 'Factory Droid',
-    dir: '.factory/droids',
-    description: 'Factory.ai coding agent'
-  },
-  antigravity: {
-    name: 'Antigravity',
-    dir: '.gemini/workflows',
-    description: 'Google Gemini AI IDE'
-  },
-  opencode: {
-    name: 'OpenCode',
-    dir: '.opencode',
-    description: 'Open-source AI coding tool'
-  }
-};
+// Provider configurations (ordered by popularity)
+const PROVIDERS = [
+  { id: 'cursor', name: 'Cursor', dir: '.cursor/rules', description: 'AI-powered IDE with rules system' },
+  { id: 'claude', name: 'Claude Code', dir: '.claude', description: 'Anthropic Claude CLI agent' },
+  { id: 'copilot', name: 'GitHub Copilot', dir: '.github', description: 'GitHub Copilot Chat instructions' },
+  { id: 'cline', name: 'Cline', dir: '.clinerules', description: 'VS Code extension with rules' },
+  { id: 'windsurf', name: 'Windsurf', dir: '.windsurf/rules', description: 'Codeium Cascade agent' },
+  { id: 'opencode', name: 'OpenCode', dir: '.opencode', description: 'Open-source AI coding tool' },
+  { id: 'antigravity', name: 'Antigravity', dir: '.gemini/workflows', description: 'Google Gemini AI IDE' },
+  { id: 'trae', name: 'Trae', dir: '.trae', description: 'ByteDance AI coding assistant' },
+  { id: 'kiro', name: 'Kiro', dir: '.kiro/agents', description: 'AWS AI coding IDE' },
+  { id: 'droid', name: 'Factory Droid', dir: '.factory/droids', description: 'Factory.ai coding agent' }
+];
 
 // File conflict options
 const CONFLICT_OPTIONS = {
@@ -107,68 +67,51 @@ function getTemplateDir() {
 const TARGET_DIR = process.cwd();
 const TEMPLATE_DIR = getTemplateDir();
 
-// Create readline interface
-function createRL() {
-  return readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
+// Get provider config by id
+function getProvider(id) {
+  return PROVIDERS.find(p => p.id === id);
 }
 
-// Ask a question
-async function ask(rl, question) {
-  return new Promise(resolve => rl.question(question, resolve));
-}
+// Select providers with checkbox UI
+async function selectProviders() {
+  console.log('\n' + colors.bold + colors.magenta + '🚀 Agentic Dev Starter' + colors.reset);
+  console.log(colors.gray + '   Universal AI coding assistant configuration\n' + colors.reset);
 
-// Multi-select providers
-async function selectProviders(rl) {
-  const providerIds = Object.keys(PROVIDERS);
-  const selected = new Set();
+  // Pad names for alignment
+  const maxNameLen = Math.max(...PROVIDERS.map(p => p.name.length));
 
-  console.log('\n' + colors.bold + '📦 Which AI coding tools do you use?' + colors.reset);
-  console.log(colors.gray + '   Enter numbers separated by commas, or "a" for all\n' + colors.reset);
+  const choices = PROVIDERS.map(p => ({
+    name: `${p.name.padEnd(maxNameLen)} ${colors.gray}(${p.description})${colors.reset}`,
+    value: p.id,
+    checked: p.id === 'cursor' // Only Cursor pre-selected
+  }));
 
-  providerIds.forEach((id, i) => {
-    const p = PROVIDERS[id];
-    console.log(`   ${colors.cyan}${i + 1}.${colors.reset} ${p.name} ${colors.gray}(${p.description})${colors.reset}`);
-  });
-  console.log(`   ${colors.cyan}a.${colors.reset} All providers`);
-
-  const answer = await ask(rl, '\n   Your selection: ');
-
-  if (answer.toLowerCase() === 'a') {
-    return providerIds;
-  }
-
-  const nums = answer.split(',').map(s => parseInt(s.trim(), 10));
-  nums.forEach(n => {
-    if (n >= 1 && n <= providerIds.length) {
-      selected.add(providerIds[n - 1]);
-    }
+  const selected = await checkbox({
+    message: 'Select AI coding tools (space to toggle, enter to confirm)',
+    choices,
+    pageSize: 12
   });
 
-  return Array.from(selected);
+  return selected;
 }
 
 // Handle file conflict
-async function handleConflict(rl, filePath, defaultChoice = null) {
+async function handleConflict(filePath) {
   const relativePath = path.relative(TARGET_DIR, filePath);
 
-  console.log(`\n${colors.yellow}   ⚠ File exists: ${relativePath}${colors.reset}`);
-  console.log('   What would you like to do?');
-  console.log(`   ${colors.cyan}1.${colors.reset} Skip (keep existing)`);
-  console.log(`   ${colors.cyan}2.${colors.reset} Merge (prepend our rules)`);
-  console.log(`   ${colors.cyan}3.${colors.reset} Overwrite`);
-  console.log(`   ${colors.cyan}4.${colors.reset} Backup (rename existing to .backup)`);
+  const { select } = require('@inquirer/prompts');
 
-  const answer = await ask(rl, '   Your choice [1]: ');
+  const choice = await select({
+    message: `File exists: ${relativePath}. What to do?`,
+    choices: [
+      { name: 'Skip (keep existing)', value: CONFLICT_OPTIONS.SKIP },
+      { name: 'Merge (prepend our rules)', value: CONFLICT_OPTIONS.MERGE },
+      { name: 'Overwrite', value: CONFLICT_OPTIONS.OVERWRITE },
+      { name: 'Backup (rename to .backup)', value: CONFLICT_OPTIONS.BACKUP }
+    ]
+  });
 
-  switch (answer.trim()) {
-    case '2': return CONFLICT_OPTIONS.MERGE;
-    case '3': return CONFLICT_OPTIONS.OVERWRITE;
-    case '4': return CONFLICT_OPTIONS.BACKUP;
-    default: return CONFLICT_OPTIONS.SKIP;
-  }
+  return choice;
 }
 
 // Ensure directory exists
@@ -179,7 +122,7 @@ function ensureDir(dirPath) {
 }
 
 // Copy file with conflict handling
-async function copyFile(rl, srcPath, destPath, globalChoice = null) {
+async function copyFile(srcPath, destPath, globalChoice = null) {
   const relativeDest = path.relative(TARGET_DIR, destPath);
 
   if (!fs.existsSync(srcPath)) {
@@ -193,7 +136,7 @@ async function copyFile(rl, srcPath, destPath, globalChoice = null) {
     let choice = globalChoice;
 
     if (!choice) {
-      choice = await handleConflict(rl, destPath);
+      choice = await handleConflict(destPath);
     }
 
     switch (choice) {
@@ -210,10 +153,12 @@ async function copyFile(rl, srcPath, destPath, globalChoice = null) {
         return choice;
 
       case CONFLICT_OPTIONS.BACKUP:
+        // Read source content BEFORE any file operations
+        const sourceContent = fs.readFileSync(srcPath, 'utf8');
         const backupPath = destPath + '.backup';
         fs.renameSync(destPath, backupPath);
         log.dim(`Backed up to: ${path.relative(TARGET_DIR, backupPath)}`);
-        fs.copyFileSync(srcPath, destPath);
+        fs.writeFileSync(destPath, sourceContent);
         log.success(`Created: ${relativeDest}`);
         return choice;
 
@@ -231,7 +176,7 @@ async function copyFile(rl, srcPath, destPath, globalChoice = null) {
 }
 
 // Copy directory recursively
-async function copyDir(rl, srcDir, destDir, globalChoice = null) {
+async function copyDir(srcDir, destDir, globalChoice = null) {
   if (!fs.existsSync(srcDir)) {
     return globalChoice;
   }
@@ -241,63 +186,45 @@ async function copyDir(rl, srcDir, destDir, globalChoice = null) {
   const entries = fs.readdirSync(srcDir, { withFileTypes: true });
 
   for (const entry of entries) {
+    // Skip backup files
+    if (entry.name.endsWith('.backup')) {
+      continue;
+    }
+
     const srcPath = path.join(srcDir, entry.name);
     const destPath = path.join(destDir, entry.name);
 
     if (entry.isDirectory()) {
-      globalChoice = await copyDir(rl, srcPath, destPath, globalChoice);
+      globalChoice = await copyDir(srcPath, destPath, globalChoice);
     } else {
-      globalChoice = await copyFile(rl, srcPath, destPath, globalChoice);
+      globalChoice = await copyFile(srcPath, destPath, globalChoice);
     }
   }
 
   return globalChoice;
 }
 
-// Install for specific provider
-async function installProvider(rl, providerId) {
-  const config = PROVIDERS[providerId];
-  if (!config) return;
-
-  log.section(`📦 Installing ${config.name}...`);
-
-  const srcDir = path.join(TEMPLATE_DIR, config.dir);
-  const destDir = path.join(TARGET_DIR, config.dir);
-
-  // Copy provider-specific directory
-  if (fs.existsSync(srcDir)) {
-    await copyDir(rl, srcDir, destDir);
-  } else {
-    // Generate from .agent source
-    await generateProviderConfig(rl, providerId);
-  }
-}
-
 // Generate provider config from .agent source
-async function generateProviderConfig(rl, providerId) {
+async function generateProviderConfig(providerId) {
   const agentSrcDir = path.join(TEMPLATE_DIR, '.agent', 'agents');
   const commandSrcDir = path.join(TEMPLATE_DIR, '.agent', 'commands');
-  const config = PROVIDERS[providerId];
+  const config = getProvider(providerId);
 
   if (!fs.existsSync(agentSrcDir)) {
-    log.warn(`Agent templates not found`);
+    log.warn(`Agent templates not found at ${agentSrcDir}`);
     return;
   }
 
   const destDir = path.join(TARGET_DIR, config.dir);
   ensureDir(destDir);
 
-  // Read agent files
-  const agentFiles = fs.existsSync(agentSrcDir)
-    ? fs.readdirSync(agentSrcDir).filter(f => f.endsWith('.md'))
-    : [];
+  const agentFiles = fs.readdirSync(agentSrcDir).filter(f => f.endsWith('.md'));
   const commandFiles = fs.existsSync(commandSrcDir)
     ? fs.readdirSync(commandSrcDir).filter(f => f.endsWith('.md'))
     : [];
 
   switch (providerId) {
     case 'cursor':
-      // Create agents.mdc
       let cursorContent = '---\ndescription: AI agent definitions\nalwaysApply: false\n---\n\n# Agents\n\n';
       agentFiles.forEach(f => {
         const name = path.basename(f, '.md');
@@ -308,7 +235,6 @@ async function generateProviderConfig(rl, providerId) {
       fs.writeFileSync(path.join(destDir, 'agents.mdc'), cursorContent);
       log.success(`Created: ${config.dir}/agents.mdc`);
 
-      // Copy commands
       commandFiles.forEach(f => {
         const src = path.join(commandSrcDir, f);
         const dest = path.join(destDir, f.replace('.md', '.mdc'));
@@ -318,7 +244,6 @@ async function generateProviderConfig(rl, providerId) {
       break;
 
     case 'cline':
-      // Create numbered files
       const agentsContent = fs.readFileSync(path.join(TEMPLATE_DIR, 'AGENTS.md'), 'utf8');
       fs.writeFileSync(path.join(destDir, '01-rules.md'), agentsContent);
       log.success(`Created: ${config.dir}/01-rules.md`);
@@ -333,7 +258,6 @@ async function generateProviderConfig(rl, providerId) {
       break;
 
     case 'claude':
-      // Create CLAUDE.md and settings.json
       const claudeContent = fs.readFileSync(path.join(TEMPLATE_DIR, 'AGENTS.md'), 'utf8');
       fs.writeFileSync(path.join(TARGET_DIR, 'CLAUDE.md'), claudeContent);
       log.success(`Created: CLAUDE.md`);
@@ -378,16 +302,29 @@ async function generateProviderConfig(rl, providerId) {
       break;
 
     case 'droid':
-    case 'opencode':
-      // Copy agent files directly
       agentFiles.forEach(f => {
         fs.copyFileSync(path.join(agentSrcDir, f), path.join(destDir, f));
         log.success(`Created: ${config.dir}/${f}`);
       });
       break;
 
+    case 'opencode':
+      const openAgentDir = path.join(destDir, 'agent');
+      const openCmdDir = path.join(destDir, 'command');
+      ensureDir(openAgentDir);
+      ensureDir(openCmdDir);
+
+      agentFiles.forEach(f => {
+        fs.copyFileSync(path.join(agentSrcDir, f), path.join(openAgentDir, f));
+        log.success(`Created: ${config.dir}/agent/${f}`);
+      });
+      commandFiles.forEach(f => {
+        fs.copyFileSync(path.join(commandSrcDir, f), path.join(openCmdDir, f));
+        log.success(`Created: ${config.dir}/command/${f}`);
+      });
+      break;
+
     case 'antigravity':
-      // Copy command files (strip YAML)
       commandFiles.forEach(f => {
         const content = fs.readFileSync(path.join(commandSrcDir, f), 'utf8');
         const body = content.replace(/^---[\s\S]*?---\n/, '');
@@ -398,41 +335,51 @@ async function generateProviderConfig(rl, providerId) {
   }
 }
 
+// Install for specific provider
+async function installProvider(providerId) {
+  const config = getProvider(providerId);
+  if (!config) return;
+
+  log.section(`📦 Installing ${config.name}...`);
+
+  const srcDir = path.join(TEMPLATE_DIR, config.dir);
+
+  if (fs.existsSync(srcDir)) {
+    await copyDir(srcDir, path.join(TARGET_DIR, config.dir));
+  } else {
+    await generateProviderConfig(providerId);
+  }
+}
+
 // Main installation
 async function main() {
-  console.log('\n' + colors.bold + colors.magenta + '🚀 Agentic Dev Starter' + colors.reset);
-  console.log(colors.gray + '   Universal AI coding assistant configuration\n' + colors.reset);
-
-  const rl = createRL();
-
   try {
     // 1. Select providers
-    const providers = await selectProviders(rl);
+    const providers = await selectProviders();
 
     if (providers.length === 0) {
       console.log('\n' + colors.yellow + '   No providers selected. Exiting.' + colors.reset + '\n');
-      rl.close();
       return;
     }
 
-    console.log(`\n${colors.gray}   Selected: ${providers.map(p => PROVIDERS[p].name).join(', ')}${colors.reset}`);
+    console.log(`\n${colors.gray}   Selected: ${providers.map(id => getProvider(id).name).join(', ')}${colors.reset}`);
 
     // 2. Install .agent directory (source of truth)
     log.section('📁 Installing core files...');
 
     const agentSrc = path.join(TEMPLATE_DIR, '.agent');
     const agentDest = path.join(TARGET_DIR, '.agent');
-    await copyDir(rl, agentSrc, agentDest);
+    await copyDir(agentSrc, agentDest);
 
     // 3. Install AGENTS.md
-    await copyFile(rl,
+    await copyFile(
       path.join(TEMPLATE_DIR, 'AGENTS.md'),
       path.join(TARGET_DIR, 'AGENTS.md')
     );
 
     // 4. Install provider-specific configs
     for (const providerId of providers) {
-      await installProvider(rl, providerId);
+      await installProvider(providerId);
     }
 
     // 5. Done!
@@ -443,9 +390,11 @@ async function main() {
     console.log('   3. Commit to version control\n');
 
   } catch (err) {
-    log.error(err.message);
-  } finally {
-    rl.close();
+    if (err.message?.includes('User force closed')) {
+      console.log('\n' + colors.yellow + '   Cancelled.' + colors.reset + '\n');
+    } else {
+      log.error(err.message);
+    }
   }
 }
 
@@ -465,7 +414,7 @@ Options:
   --version, -v   Show version
 
 Supported providers:
-${Object.entries(PROVIDERS).map(([id, p]) => `  - ${p.name.padEnd(15)} (${id})`).join('\n')}
+${PROVIDERS.map(p => `  - ${p.name.padEnd(15)} (${p.id})`).join('\n')}
 `);
   process.exit(0);
 }
