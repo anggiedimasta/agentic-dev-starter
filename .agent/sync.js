@@ -78,10 +78,16 @@ const PROVIDERS = {
     dir: '.factory/droids',
     description: 'Factory.ai coding agent'
   },
+  gemini: {
+    name: 'Gemini CLI',
+    dir: '.gemini',
+    description: 'Google Gemini command-line tool'
+  },
   antigravity: {
     name: 'Antigravity',
-    dir: '.gemini/workflows',
-    description: 'Google Gemini AI IDE'
+    dir: '.agent/workflows',
+    native: true,  // Antigravity reads directly from .agent/, no sync needed
+    description: 'Google Antigravity AI IDE'
   },
   opencode: {
     name: 'OpenCode',
@@ -278,6 +284,7 @@ async function installProvider(rl, providerId) {
 async function generateProviderConfig(rl, providerId) {
   const agentSrcDir = path.join(TEMPLATE_DIR, '.agent', 'agents');
   const commandSrcDir = path.join(TEMPLATE_DIR, '.agent', 'commands');
+  const rulesSrcDir = path.join(TEMPLATE_DIR, '.agent', 'rules');
   const config = PROVIDERS[providerId];
 
   if (!fs.existsSync(agentSrcDir)) {
@@ -295,9 +302,32 @@ async function generateProviderConfig(rl, providerId) {
   const commandFiles = fs.existsSync(commandSrcDir)
     ? fs.readdirSync(commandSrcDir).filter(f => f.endsWith('.md'))
     : [];
+  const rulesFiles = fs.existsSync(rulesSrcDir)
+    ? fs.readdirSync(rulesSrcDir).filter(f => f.endsWith('.md')).sort()
+    : [];
+
+  // Helper to get combined rules content
+  const getRulesContent = () => {
+    if (rulesFiles.length === 0) return '';
+    let content = '\n\n# Coding Rules\n\n';
+    rulesFiles.forEach(f => {
+      const ruleContent = fs.readFileSync(path.join(rulesSrcDir, f), 'utf8');
+      const body = ruleContent.replace(/^---[\s\S]*?---\n/, '');
+      content += body + '\n\n---\n\n';
+    });
+    return content;
+  };
 
   switch (providerId) {
     case 'cursor':
+      // Create rules.mdc from coding rules
+      if (rulesFiles.length > 0) {
+        let cursorRules = '---\ndescription: Coding rules and best practices\nalwaysApply: true\n---\n';
+        cursorRules += getRulesContent();
+        fs.writeFileSync(path.join(destDir, 'rules.mdc'), cursorRules);
+        log.success(`Created: ${config.dir}/rules.mdc`);
+      }
+
       // Create agents.mdc
       let cursorContent = '---\ndescription: AI agent definitions\nalwaysApply: false\n---\n\n# Agents\n\n';
       agentFiles.forEach(f => {
@@ -331,11 +361,18 @@ async function generateProviderConfig(rl, providerId) {
       });
       fs.writeFileSync(path.join(destDir, '02-agents.md'), agentRef);
       log.success(`Created: ${config.dir}/02-agents.md`);
+
+      // Add coding rules
+      if (rulesFiles.length > 0) {
+        fs.writeFileSync(path.join(destDir, '03-coding-rules.md'), getRulesContent());
+        log.success(`Created: ${config.dir}/03-coding-rules.md`);
+      }
       break;
 
     case 'claude':
-      // Create CLAUDE.md and settings.json
-      const claudeContent = fs.readFileSync(path.join(TEMPLATE_DIR, 'AGENTS.md'), 'utf8');
+      // Create CLAUDE.md with rules
+      let claudeContent = fs.readFileSync(path.join(TEMPLATE_DIR, 'AGENTS.md'), 'utf8');
+      claudeContent += getRulesContent();
       fs.writeFileSync(path.join(TARGET_DIR, 'CLAUDE.md'), claudeContent);
       log.success(`Created: CLAUDE.md`);
 
@@ -345,7 +382,8 @@ async function generateProviderConfig(rl, providerId) {
       break;
 
     case 'copilot':
-      const copilotContent = fs.readFileSync(path.join(TEMPLATE_DIR, 'AGENTS.md'), 'utf8');
+      let copilotContent = fs.readFileSync(path.join(TEMPLATE_DIR, 'AGENTS.md'), 'utf8');
+      copilotContent += getRulesContent();
       fs.writeFileSync(path.join(destDir, 'copilot-instructions.md'), copilotContent);
       log.success(`Created: ${config.dir}/copilot-instructions.md`);
       break;
@@ -357,17 +395,25 @@ async function generateProviderConfig(rl, providerId) {
         const name = path.basename(f, '.md');
         windsurfContent += `- **@${name}**: \`.agent/agents/${name}.md\`\n`;
       });
+      windsurfContent += getRulesContent();
       fs.writeFileSync(path.join(destDir, 'rules.md'), windsurfContent);
       log.success(`Created: ${config.dir}/rules.md`);
       break;
 
     case 'trae':
-      const traeContent = fs.readFileSync(path.join(TEMPLATE_DIR, 'AGENTS.md'), 'utf8');
+      let traeContent = fs.readFileSync(path.join(TEMPLATE_DIR, 'AGENTS.md'), 'utf8');
+      traeContent += getRulesContent();
       fs.writeFileSync(path.join(destDir, 'project_rules.md'), traeContent);
       log.success(`Created: ${config.dir}/project_rules.md`);
       break;
 
     case 'kiro':
+      // Create a rules agent with coding rules
+      if (rulesFiles.length > 0) {
+        const rulesJson = { name: 'coding-rules', prompt: getRulesContent(), model: 'claude-sonnet-4', tools: ['read'] };
+        fs.writeFileSync(path.join(destDir, 'coding-rules.json'), JSON.stringify(rulesJson, null, 2));
+        log.success(`Created: ${config.dir}/coding-rules.json`);
+      }
       agentFiles.forEach(f => {
         const name = path.basename(f, '.md');
         const content = fs.readFileSync(path.join(agentSrcDir, f), 'utf8');
@@ -385,16 +431,26 @@ async function generateProviderConfig(rl, providerId) {
         fs.copyFileSync(path.join(agentSrcDir, f), path.join(destDir, f));
         log.success(`Created: ${config.dir}/${f}`);
       });
+      // Copy rules files
+      rulesFiles.forEach(f => {
+        fs.copyFileSync(path.join(rulesSrcDir, f), path.join(destDir, f));
+        log.success(`Created: ${config.dir}/${f}`);
+      });
+      break;
+
+    case 'gemini':
+      // Create .gemini/instructions.md with rules
+      let geminiContent = fs.readFileSync(path.join(TEMPLATE_DIR, 'AGENTS.md'), 'utf8');
+      geminiContent += getRulesContent();
+      fs.writeFileSync(path.join(destDir, 'instructions.md'), geminiContent);
+      log.success(`Created: ${config.dir}/instructions.md`);
       break;
 
     case 'antigravity':
-      // Copy command files (strip YAML)
-      commandFiles.forEach(f => {
-        const content = fs.readFileSync(path.join(commandSrcDir, f), 'utf8');
-        const body = content.replace(/^---[\s\S]*?---\n/, '');
-        fs.writeFileSync(path.join(destDir, f), body);
-        log.success(`Created: ${config.dir}/${f}`);
-      });
+      // Antigravity reads directly from .agent/ - no sync needed
+      // Workflows: .agent/workflows/ (triggered via /command)
+      // Rules: .agent/rules/ (passive, always active)
+      log.skip('Antigravity uses .agent/ directly - no sync needed');
       break;
   }
 }

@@ -1,6 +1,6 @@
 # Agentic Dev Starter
 
-Universal AI coding assistant configuration for 10+ providers.
+Universal AI coding assistant configuration for 11 providers.
 
 ## Installation
 
@@ -13,7 +13,7 @@ bunx agentic-dev-starter
 The installer will:
 1. Ask which AI tools you use
 2. Install `.agent/` directory (source of truth)
-3. Generate provider-specific configs
+3. Generate provider-specific configs with rules
 4. Handle file conflicts gracefully
 
 ## Supported Providers
@@ -28,7 +28,8 @@ The installer will:
 | **Trae** | ByteDance AI coding assistant |
 | **Kiro** | AWS AI coding IDE |
 | **Factory Droid** | Factory.ai coding agent |
-| **Antigravity** | Google Gemini AI IDE |
+| **Gemini CLI** | Google Gemini command-line tool |
+| **Antigravity** | Google Antigravity AI IDE |
 | **OpenCode** | Open-source AI coding tool |
 
 ## What Gets Installed
@@ -37,25 +38,23 @@ The installer will:
 your-project/
 ├── .agent/                    # Source of truth
 │   ├── agents/                # 8 agent definitions
-│   │   ├── orchestrator.md
-│   │   ├── codebase-explorer.md
-│   │   ├── debugger.md
-│   │   └── ...
-│   └── commands/              # 10 workflow commands
-│       ├── commit.md
-│       ├── debug.md
-│       └── ...
+│   ├── commands/              # 10 command templates
+│   ├── rules/                 # 4 coding rules (auto-synced)
+│   └── workflows/             # 10 workflows
 ├── AGENTS.md                  # Project rules
 └── [provider-specific dirs]   # Based on your selection
 ```
 
-## File Conflict Handling
+## Coding Rules
 
-If files already exist, you can choose to:
-- **Skip** - Keep your existing file
-- **Merge** - Prepend our rules to your file
-- **Overwrite** - Replace with our template
-- **Backup** - Rename existing to `.backup`
+Automatically synced to all providers:
+
+| Rule | Content |
+|------|---------|
+| **Code Quality** | Self-documenting code, error handling, null safety |
+| **TypeScript/Go** | Strict mode, Vue 3 Composition API, Go conventions |
+| **Security/Git** | Input validation, auth, git safety |
+| **Architecture** | SOLID principles, testing patterns |
 
 ## Agents
 
@@ -70,10 +69,11 @@ If files already exist, you can choose to:
 | `@reviewer` | Code review |
 | `@tester` | Write tests |
 
-## Commands
+## Workflows
 
-| Command | Purpose |
-|---------|---------|
+| Workflow | Purpose |
+|----------|---------|
+| `/init` | Initialize AGENTS.md |
 | `/commit` | Conventional commits |
 | `/debug` | Systematic debugging |
 | `/refactor` | Safe refactoring |
@@ -86,14 +86,15 @@ These tools can spawn subagents at runtime:
 - ✅ Claude Code SDK
 - ✅ OpenCode
 - ✅ Factory Droid
-
-Other tools use agent definitions as reference documentation.
+- ✅ Antigravity
 
 ## Customization
 
 1. Edit `AGENTS.md` for project-specific rules
 2. Modify `.agent/agents/` for agent behavior
 3. Add commands in `.agent/commands/`
+4. Add rules in `.agent/rules/` (auto-synced to providers)
+5. Add workflows in `.agent/workflows/`
 
 ## License
 
